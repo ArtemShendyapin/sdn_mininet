@@ -41,15 +41,16 @@ class RandomTopo(Topo):
         # Create hosts
         for h in range(1, host_num+1):
             host_name = 'h'+str(h)
+            switch_name = 'sw'+str(randint(1, self.graph.number_of_nodes()))
+            host = self.addHost(host_name, mac="00:00:00:00:00:"+str(h))
+            self.addLink(host, switch_name,)#, bw=2
+            self.vertex[host_name] = self.vertex[switch_name]
 
-#            arr = self.graph.nodes()
-#            print(arr)
-#            print(arr[1])
-            for n in self.graph.nodes():
-              switch_name = self.graph.node[n]['name']
+#            for n in self.graph.nodes():
+#              switch_name = self.graph.node[n]['name']
 #randint(1, self.graph.number_of_nodes())
-              host = self.addHost(host_name, mac="00:00:00:00:00:"+str(h))
-              self.addLink(host, switch_name,)#, bw=2
+#              host = self.addHost(host_name, mac="00:00:00:00:00:"+str(h))
+#              self.addLink(host, switch_name,)#, bw=2
             
 #                self.vertex[host_name] = self.vertex[switch_name]
         
@@ -57,27 +58,7 @@ class RandomTopo(Topo):
         for e in self.graph.edges():
             link = self.addLink(self.graph.node[e[0]]['name'], self.graph.node[e[1]]['name'])#, bw=2
 
-'''
-        if switch_num>1:
-            self.graph = nx.barabasi_albert_graph(switch_num, 2)
-        else:
-            self.graph = nx.Graph()
-            self.graph.add_node(0)
 
-        server1 = self.addHost('s1')
-        server2 = self.addHost('s2')
-        self.addLink(server1, 'sw1')#, bw=2
-        if switch_num>1: self.addLink(server2, 'sw2')#, bw=2
-        self.vertex['s1'] = self.vertex['sw1']
-        if switch_num>1: self.vertex['s2'] = self.vertex['sw2']
-'''
-
-'''
-        self.switch_num = network_size
-        self.server_num = 2
-        self.host_num = host_num#3*network_size/2
-        self.topo = {}
-'''        
 class Network(Mininet):
     "Random network"
     
@@ -93,8 +74,6 @@ class Network(Mininet):
     
     def __enter__(self):
         # Start network emulation
-        #print colored('Network: size = '+str(self.switch_num)+', host number = '+str(self.host_num), 'cyan')
-#        print 'Network: size = '+str(self.switch_num)+', host number = '+str(self.host_num)
         print 'Network: size = host number = '+str(self.host_num)
         self.start()
          
