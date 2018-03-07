@@ -20,7 +20,7 @@ from controller import Controller
 class RandomTopo(Topo):
     "Random topology"
 
-    def __init__(self, graph_file, host_num):
+    def __init__(self, graph_file, bound_sw, unbound_sw=None):
         Topo.__init__(self)
         self.vertex = {}
         self.graph = {}
@@ -29,23 +29,29 @@ class RandomTopo(Topo):
         self.graph = nx.read_gml(graph_file)
 
         # Create switches
+        available_sw = set()
         for n in self.graph.nodes():
             switch_name = 'sw'+str(n+1)
             switch = self.addSwitch(switch_name, protocols='OpenFlow13', dpid=str(n+1))
             
             self.graph.node[n]['name'] = switch_name
             self.vertex[switch_name] = n
+            available_sw.add(switch_name)
         
         # Create servers
         
         # Create hosts
-        for h in range(1, host_num+1):
-            host_name = 'h'+str(h)
-            switch_name = 'sw'+str(randint(1, self.graph.number_of_nodes()))
-            host = self.addHost(host_name, mac="00:00:00:00:00:"+str(h))
+        for index, switch_name in enumerate(bound_sw):
+            host_name = 'h'+str(index+1)
+#            switch_name = 'sw'+str(randint(1, self.graph.number_of_nodes()))
+            print(host_name, switch_name)
+            host = self.addHost(host_name, mac="00:00:00:00:00:"+str(index+1))
             self.addLink(host, switch_name,)#, bw=2
             self.vertex[host_name] = self.vertex[switch_name]
+            available_sw.discard(switch_name)
 
+        for switch in available_sw:
+            unbound_sw.append(switch)
 #            for n in self.graph.nodes():
 #              switch_name = self.graph.node[n]['name']
 #randint(1, self.graph.number_of_nodes())
@@ -63,18 +69,19 @@ class Network(Mininet):
     "Random network"
     
 #    def __init__(self, controller, network_size, host_num):
-    def __init__(self, graph_file, controller, host_num):
-        self.host_num = host_num#3*network_size/2
+    def __init__(self, graph_file, controller, bound_sw, unbound_sw):
+        self.bound_sw = bound_sw#3*network_size/2
 
         # Create network
         #setLogLevel('info')
-        self.topo = RandomTopo(graph_file, self.host_num)
+#        unbound_sw = []
+        self.topo = RandomTopo(graph_file, self.bound_sw, unbound_sw)
         Mininet.__init__(self, topo=self.topo, controller=None)#, link=TCLink
         self.addController('c0', controller=RemoteController, ip=controller.ip, port=6653)
     
     def __enter__(self):
         # Start network emulation
-        print 'Network: size = host number = '+str(self.host_num)
+        print 'Network: bound switches: '+str(self.bound_sw)
         self.start()
          
         # Disable IPv6
