@@ -1,5 +1,6 @@
 import re
 import random
+from network import Network
 
 class Attack:
   victim_mac = ''
@@ -76,17 +77,24 @@ class TestCase:
   attacks = []
   av_switches = []
 
-  def __init__(self, attacks, av_switches):
+  def __init__(self, attacks, av_switches, network):
     self.attacks = attacks
     self.av_switches = av_switches
+    self.network = network
 #    self.comp_sw = []
 
   def start_attacks(self, phase):
     for attack in self.attacks:
        if attack.phase == phase:
          attack.choose_switch(self.av_switches)
-         command = "python ../attacker/attacker.py "+attack.atk_type+" "+attack.atk_switch.name+" "+attack.mode+" "+attack.victim_mac+" "+attack.victim_rec_mac
-         if attack.atk_type == "duplicate":
+         if attack.atk_type == 'duplicate':
+           attack.atk_switch = self.network.getNodeByName('sw1')
+           attack.mode = 'add-flow'
+         if attack.atk_type == 'MitM':
+           attack.atk_switch = self.network.getNodeByName('sw4')
+           attack.mode = 'add-flow'
+         command = "python attacker.py "+attack.atk_type+" "+attack.atk_switch.name+" "+attack.mode+" "+attack.victim_mac+" "+attack.victim_rec_mac
+         if attack.atk_type == "duplicate" or attack.atk_type == "MitM":
            addresses = ""
            for host in attack.host_list:
              if host.name != attack.atk_host.name:

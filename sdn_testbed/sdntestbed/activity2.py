@@ -20,6 +20,7 @@ class UnicastActivity(Activity):
         self.host_pairs = {}
         self.host_ip = {}
         self.pids = {}
+        self.pid_listen = {}
         
         # Create host pairs
         if host_pairs != None:
@@ -53,7 +54,6 @@ class UnicastActivity(Activity):
         # Start performance test
         #call("rm ../.tmp/*.pcap > /dev/null 2>&1", shell=True)
         port_num = 5200
-        netcat_port = 5555
         for host1 in self.host_pairs:
             host2 = self.host_pairs[host1]
 
@@ -62,27 +62,36 @@ class UnicastActivity(Activity):
             #host1.cmd('sudo tcpdump -i '+host1.name+'-eth0 -U -w azaza.pcap &')
 
             output = host2.cmd('python communication.py ' + self.host_ip[host2.name] + ' server')
-            self.pids[host2] = [int(re.findall(r'\d+', output)[0])]
+            self.pids[host2] = int(re.findall(r'\d+', output)[0])
 
             output = host1.cmd('python communication.py ' + self.host_ip[host2.name] + ' client') 
-            self.pids[host1] = [int(re.findall(r'\d+', output)[0])]
+            self.pids[host1] = int(re.findall(r'\d+', output)[0])
 
-            output = host1.cmd('python server.py ' + self.host_ip[host1.name] + ' ' + str(netcat_port))
-            self.pids[host1].append(int(re.findall(r'\d+', output)[0]))
-            output = host2.cmd('python server.py ' + self.host_ip[host2.name] + ' ' + str(netcat_port))
-            self.pids[host2].append(int(re.findall(r'\d+', output)[0]))
             #host2.cmd('xterm -e "iperf3 -s -B '+self.host_ip[host2.name]+' -i 1" &')
             #host1.cmd('xterm -e "iperf3 -c '+self.host_ip[host2.name]+' -u -b '+str(bandwidth*1000000)+' -i 1 -t 60" &')
     
     def stop(self):
         for host in self.pids.keys():
-            for pid in self.pids[host]:
-              host.cmd('kill ' + str(pid+1))
+            host.cmd('kill ' + str(self.pids[host]+1))
             self.pids.pop(host)
 #        for host in self.hosts: 
 #            host.cmd('kill $(jobs -p)')
         
         self.controller.clear_routes()
+
+    def listen(self):
+        netcat_port = 5555
+        for host1 in self.host_pairs:
+            host2 = self.host_pairs[host1]
+            output = host1.cmd('python server.py ' + self.host_ip[host1.name] + ' ' + str(netcat_port))
+            self.pid_listen[host1] = int(re.findall(r'\d+', output)[0])
+            output = host2.cmd('python server.py ' + self.host_ip[host2.name] + ' ' + str(netcat_port))
+            self.pid_listen[host2] = int(re.findall(r'\d+', output)[0])
+        
+    def stop_listen(self):
+        for host in self.pid_listen.keys():
+            host.cmd('kill ' + str(self.pid_listen[host]+1))
+            self.pid_listen.pop(host)
 
 '''    
                 # Create route by controller
