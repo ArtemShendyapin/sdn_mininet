@@ -26,21 +26,26 @@ if __name__ == '__main__':
         atk_host = network.getNodeByName('h4')
         attacks = [
       Attack('00:00:00:00:00:01', 'any', 1, 'duplicate', atk_host, host_list),
-      Attack('00:00:00:00:00:01', 'any', 1, 'flood', atk_host),
-      Attack('00:00:00:00:00:02', 'any', 1, 'drop', atk_host),
+      Attack('00:00:00:00:00:02', 
+             '00:00:00:00:00:03', 2, 'MitM', atk_host, host_list),
+      Attack('00:00:00:00:00:01', 'any', 3, 'flood', atk_host),
+      Attack('00:00:00:00:00:02', 'any', 2, 'drop', atk_host),
 #           Attack('00:00:00:00:00:03', 'any', 2, 'flood'),
-#           Attack('00:00:00:00:00:04', 'any', 1, 'incorrect_forwarding'),
+      Attack('00:00:00:00:00:04', 'any', 3, 'incorrect_forwarding', atk_host),
 #           Attack('00:00:00:00:00:07', 'any', 3, 'drop'),
           ]
 #"python ../attacker/attacker.py sw12 00:00:00:00:00:02 00:00:00:00:00:03 drop"]
-        attacker = TestCase(attacks, unbound_sw)
-        phase_num = 2
+        attacker = TestCase(attacks, unbound_sw, network)
+        phase_num = 7
         for phase in range(phase_num):
           test.start()
+          if phase == 0:
+            test.listen()
           attacker.start_attacks(phase)
           sleep(25)
           test.stop()
           test.__init__(controller_list, network, host_list)
+        test.stop_listen()
         attacker.stop_attacks()
         network._CLI()
 """
