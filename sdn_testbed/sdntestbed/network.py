@@ -26,7 +26,8 @@ class RandomTopo(Topo):
         self.graph = {}
         
         # Create graph
-        self.graph = nx.read_gml(graph_file)
+#        self.graph = nx.read_gml(graph_file)
+        self.graph = nx.barabasi_albert_graph(10, 2)
 
         # Create switches
         available_sw = set()
@@ -38,18 +39,16 @@ class RandomTopo(Topo):
             self.vertex[switch_name] = n
             available_sw.add(switch_name)
         
-        # Create servers
-        
         # Create hosts
         for index, switch_name in enumerate(bound_sw):
             host_name = 'h'+str(index+1)
-#            switch_name = 'sw'+str(randint(1, self.graph.number_of_nodes()))
             print(host_name, switch_name)
             host = self.addHost(host_name, mac="00:00:00:00:00:"+str(index+1))
             self.addLink(host, switch_name,)#, bw=2
             self.vertex[host_name] = self.vertex[switch_name]
             available_sw.discard(switch_name)
 
+        # Fill list of unbound switches
         for switch in available_sw:
             unbound_sw.append(switch)
 #            for n in self.graph.nodes():
@@ -70,7 +69,7 @@ class Network(Mininet):
     
 #    def __init__(self, controller, network_size, host_num):
     def __init__(self, graph_file, controller, bound_sw, unbound_sw):
-        self.bound_sw = bound_sw#3*network_size/2
+        self.bound_sw = bound_sw
 
         # Create network
         #setLogLevel('info')
@@ -101,7 +100,6 @@ class Network(Mininet):
     
     def __exit__(self, exc_type, exc_value, traceback):
         # Stop network emulation
-        #print colored('Stop network', 'cyan')
         print 'Stop network'
         self.stop()
     

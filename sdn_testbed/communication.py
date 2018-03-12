@@ -4,6 +4,7 @@ import sys
 from subprocess import check_output
 from subprocess import Popen
 
+# This application used to launch communication between hosts via iperf3 utility
 ip_addr = str(sys.argv[1])
 mode = str(sys.argv[2])
 if mode == 'server':

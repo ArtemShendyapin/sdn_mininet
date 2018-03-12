@@ -50,14 +50,20 @@ class Attack:
     print(self.mode)
 
   def print_information(self):
+
+    # Print information about attacks
     print("Phase: " + str(self.phase))
     print("Attack type: " + self.atk_type)
     print("Attack switch: " + self.atk_switch.name)
     print("Victim mac: " + self.victim_mac)
     print("Victim rec mac: " + self.victim_rec_mac)
     print("Established rule:")
+
+    # Here we need to find established rule
+    # We can do it using information, printed by attack - attack feedback
     search_for = r''
     search_flow = self.feedback.split('\n')
+    print(search_flow)
     search_elems = search_flow[-2].split(' ')
     for search_elem in search_elems:
       search_for += search_elem + '.*'
@@ -66,7 +72,6 @@ class Attack:
     flow_list = flows.split('\n')
     for flow in flow_list:
       check_elem = re.findall(search_for, flow)
-#      check_elem = re.findall(r'dl_src='+str(self.victim_mac)+'.*dl_dst='+str(self.victim_rec_mac), flow)
       if check_elem:
         print(flow)
         break
@@ -85,15 +90,19 @@ class TestCase:
 
   def start_attacks(self, phase):
     for attack in self.attacks:
+
+       # Start attack, if its time's up
        if attack.phase == phase:
          attack.choose_switch(self.av_switches)
-         if attack.atk_type == 'duplicate':
-           attack.atk_switch = self.network.getNodeByName('sw1')
-           attack.mode = 'add-flow'
-         if attack.atk_type == 'MitM':
-           attack.atk_switch = self.network.getNodeByName('sw4')
-           attack.mode = 'add-flow'
+#         if attack.atk_type == 'duplicate':
+#           attack.atk_switch = self.network.getNodeByName('sw1')
+#           attack.mode = 'add-flow'
+#         if attack.atk_type == 'MitM':
+#           attack.atk_switch = self.network.getNodeByName('sw4')
+#           attack.mode = 'add-flow'
          command = "python attacker.py "+attack.atk_type+" "+attack.atk_switch.name+" "+attack.mode+" "+attack.victim_mac+" "+attack.victim_rec_mac
+
+         # If attack is complicated, add list of server hosts to the parameters
          if attack.atk_type == "duplicate" or attack.atk_type == "MitM":
            addresses = ""
            for host in attack.host_list:
@@ -108,5 +117,3 @@ class TestCase:
   def stop_attacks(self):
     for attack in self.attacks:
       attack.print_information()
-#    for switch in self.comp_sw:
-#      switch.cmd('kill &(jobs -p)')
